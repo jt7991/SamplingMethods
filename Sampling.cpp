@@ -2,6 +2,8 @@
 #include "of3dGraphics.h"
 #include "ofImage.h"
 #include <cstdlib>
+double gridSpacing = 10;
+double lineThickness = .5;
 Sampling::Sampling()
 {
 }
@@ -43,27 +45,52 @@ double Sampling::drawLinesWithSampling(double x, double y, double lineWidth) {
 	}
 	return 0;
 }
-double Sampling::startRandomSampling(double numPixels, double x, double y, double lineWidth) {
-	double darkness = 0;
-	for (int i = 0; i < numPixels; i++) {
-		double r = ((double)rand() / (RAND_MAX + 1));
-		double sampleX = x + r ;
-		r = ((double)rand() / (RAND_MAX + 1));
-		double sampleY = y + r ;
-		darkness += drawLinesWithSampling(sampleX, sampleY, lineWidth);
+int Sampling::screenX(double x, int gridWidth) {
+	return round(x + gridWidth / 2 + .5);
+
+}
+int Sampling::screenY(double y, int gridHeight) {
+	return gridHeight - round(y + gridHeight / 2 + .5);
+
+}
+bool Sampling::hitGrid(double x, double y, int spacing, double lineWidth) {
+	int ix = round(x);
+	if (ix % spacing <= floor(lineWidth)) {
+		if (abs(x - ix) < lineWidth / 2) return true;
 	}
-	
-	return (darkness / numPixels);
+	int iy = round(y);
+	if (iy % spacing <= floor(lineWidth)) {
+		if (abs(y - iy) < lineWidth / 2) return true;
+	}
+	return false;
 }
 
-double Sampling::startJitteredSampling(double gridWidth,double x, double y, double lineWidth) {
+ofImage Sampling::startRandomSampling(double minX, double maxX, double minY, double maxY,
+	ofImage img, double lineWidth, int numSamples) {
+	double pixelWidth = img.getWidth();
+	double pixelHeight = img.getHeight();
+	double dx = (maxX - minX) / pixelWidth;
+	double dy = (maxY - minY) / pixelHeight;
+	ofPixels& pixels = img.getPixels();
+	for (int i = 0; i < numSamples; i++) {
+		double x = ((double)rand() / (RAND_MAX + 1)) * (maxX - minX) + minX;
+		double y = ((double)rand() / (RAND_MAX + 1)) * (maxY - minY) + minY;
+		if (hitGrid(x, y, gridSpacing, lineWidth)) {
+			ofColor color(0);
+			pixels.setColor(x, y, color);
+		}
+	}
+	img.update();
+	return img;
+}
+double Sampling::startJitteredSampling(double gridWidth, double x, double y, double lineWidth) {
 	double darkness = 0;
 	double dx = 1 / gridWidth;
-	for (double i =0; i <= gridWidth; i+=dx) {
+	for (double i = 0; i <= gridWidth; i += dx) {
 		for (double j = 0; j <= gridWidth; j += dx) {
-			double r = ((double)rand() / (RAND_MAX + 1))/dx;
+			double r = ((double)rand() / (RAND_MAX + 1))*dx;
 			double sampleX = x + r + j;
-			r = ((double)rand() / (RAND_MAX + 1))/dx;
+			r = ((double)rand() / (RAND_MAX + 1))*dx;
 			double sampleY = y + r + i;
 			darkness += drawLinesWithSampling(sampleX, sampleY, lineWidth);
 		}
@@ -71,24 +98,23 @@ double Sampling::startJitteredSampling(double gridWidth,double x, double y, doub
 
 	return (darkness / (gridWidth*gridWidth));
 }
-ofImage Sampling::calculatePixels(double minX, double maxX, double minY, double maxY,
-	ofImage img, std::string samplingType, double lineWidth) {
+ofImage Sampling::startJitteredSampling(double minX, double maxX, double minY, double maxY,
+	ofImage img, double lineWidth, int numSamples, int sampleGridWidth) {
 	double pixelWidth = img.getWidth();
 	double pixelHeight = img.getHeight();
 	double dx = (maxX - minX) / pixelWidth;
 	double dy = (maxY - minY) / pixelHeight;
 	ofPixels& pixels = img.getPixels();
-
-	for (double i = minY; i < maxY; i += dy) {
-		for (double j = minX; j < maxX; j += dx) {
-			double darkness;
-			if (samplingType == "None") darkness = drawLines(j, i, lineWidth);
-			else if (samplingType == "Random") darkness = startRandomSampling(16, j, i, lineWidth);
-			else darkness = startJitteredSampling(4, j, i, lineWidth);
-			ofColor color(darkness * 255);
-			int pixelXVal = (j / maxX) * pixelWidth;
-			int pixelYVal = (i / maxY) * pixelHeight;
-			pixels.setColor(pixelXVal, pixelYVal, color);
+	for (double i = sampleGridWidth; i <= maxX; i += sampleGridWidth) {
+		for (double j = sampleGridWidth; j <= maxY; j += sampleGridWidth) {
+			for (int k = 0; k < numSamples; k++) {
+				double x = ((double)rand() / (RAND_MAX + 1)) * (i - (i-sampleGridWidth)) + (i - sampleGridWidth);
+				double y = ((double)rand() / (RAND_MAX + 1)) * (j - (j - sampleGridWidth)) + (j - sampleGridWidth);
+				if (hitGrid(x, y, gridSpacing, lineWidth)) {
+					ofColor color(0);
+					pixels.setColor(x, y, color);
+				}
+			}
 		}
 	}
 	img.update();

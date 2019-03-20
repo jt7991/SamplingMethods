@@ -12,13 +12,11 @@ Sampling sampling;
 //--------------------------------------------------------------
 void ofApp::setup() {
 	gui.setup();
-	gui.add(lineWidth.setup("Line Width", .9, .01, .99));
-	gui.add(drawImageBtn.setup("No Sampling"));
+	gui.add(lineWidth.setup("Line Width", .9, .01, 2));
 	gui.add(randomSamplingBtn.setup("Random Sampling"));
 	gui.add(jitteredSamplingBtn.setup("Jittered Sampling"));
-	drawImageBtn.addListener(this, &ofApp::drawImage);
 	randomSamplingBtn.addListener(this, &ofApp::drawImageWithRandomSampling);
-	jitteredSamplingBtn.addListener(this, &ofApp::drawImageWithRandomSampling);
+	jitteredSamplingBtn.addListener(this, &ofApp::drawImageWithJitteredSampling);
 	gui.draw();
 }
 
@@ -89,31 +87,27 @@ void ofApp::gotMessage(ofMessage msg) {
 void ofApp::dragEvent(ofDragInfo dragInfo) {
 
 }
-void ofApp::drawImage() {
-	minX = 0;
-	maxX = 511;
-	minY = 0;
-	maxY = 511;
-	img.allocate(512, 512, OF_IMAGE_COLOR);
-	img = sampling.calculatePixels(minX, maxX, minY, maxY, img, "None", lineWidth);
 
-}
 void ofApp::drawImageWithRandomSampling() {
 	minX = 0;
-	maxX = 511;
+	maxX = 500;
 	minY = 0;
-	maxY = 511;
-	img.allocate(512, 512, OF_IMAGE_COLOR);
-	img = sampling.calculatePixels(minX, maxX, minY, maxY, img, "Random", lineWidth);
+	maxY = 500;
+	ofClear(ofColor(0));
+	img.clear();
+	img.allocate(500, 500, OF_IMAGE_COLOR);
+	img = sampling.startRandomSampling(minX, maxX, minY, maxY, img, lineWidth,50000);
 
 }
 void ofApp::drawImageWithJitteredSampling() {
 	minX = 0;
-	maxX = 511;
+	maxX = 500;
 	minY = 0;
-	maxY = 511;
-	img.allocate(512, 512, OF_IMAGE_COLOR);
-	img = sampling.calculatePixels(minX, maxX, minY, maxY, img, "Jittered", lineWidth);
+	maxY = 500;
+	ofClear(ofColor(0));
+	img.clear();
+	img.allocate(500, 500, OF_IMAGE_COLOR);
+	img = sampling.startJitteredSampling(minX, maxX, minY, maxY, img, lineWidth, 1000, 10);
 
 }
 
